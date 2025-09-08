@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smoke Sensor Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #f4f4f4;
+    }
+
+    .dashboard {
+      background: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 320px;
+    }
+
+    .status {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .status.active {
+      background-color: #dc3545; /* red */
+    }
+
+    .status.inactive {
+      background-color: #28a745; /* green */
+    }
+
+    .circle {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: conic-gradient(#28a745 0deg, #ddd 0deg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px auto;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+      position: relative;
+      transition: background 0.5s;
+    }
+
+    .circle .inner {
+      position: absolute;
+    }
+
+    p {
+      margin: 10px 0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <h2>Smoke Sensor Dashboard</h2>
+    <div id="status" class="status inactive">Inactive</div>
+
+    <p>Air Quality / Smoke Level:</p>
+    <div class="circle">
+      <div class="inner" id="smokeLevel">0%</div>
+    </div>
+  </div>
+
+  <!-- MQTT.js library -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    // Connect to HiveMQ Cloud
+    const client = mqtt.connect("wss://5a91fc4f740147cdbee9240163dd5a05.s1.eu.hivemq.cloud:8884/mqtt", {
+      username: "Deivin",
+      password: "Deivin2007"
+    });
+
+    const statusEl = document.getElementById("status");
+    const circle = document.querySelector(".circle");
+    const smokeEl = document.getElementById("smokeLevel");
+
+    client.on("connect", () => {
+      console.log("Connected to HiveMQ Cloud");
+      client.subscribe("smoke/sensor1");
+    });
+
+    client.on("message", (topic, message) => {
+      const smoke = parseInt(message.toString());
+      const percent = Math.min(Math.round(smoke / 40.95), 100);
+
+      // Update circular gauge color based on level
+      let color = "#28a745"; // green
+      if (percent > 50) color = "#ffc107"; // yellow
+      if (percent > 80) color = "#dc3545"; // red
+      circle.style.background = `conic-gradient(${color} ${percent * 3.6}deg, #ddd 0deg)`;
+
+      // Update smoke percentage text
+      smokeEl.textContent = percent + "%";
+
+      // Update status
+      if (percent > 60) {
+        statusEl.textContent = "Active";
+        statusEl.className = "status active";
+      } else {
+        statusEl.textContent = "Inactive";
+        statusEl.className = "status inactive";
+      }
+    });
+  </script>
+</body>
+</html>
